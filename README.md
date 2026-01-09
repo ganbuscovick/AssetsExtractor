@@ -12,10 +12,10 @@ A simple and powerful tool to handle **RisuAI (.charx)** assets. This tool solve
 
 ### 📖 How to use
 
-1.  **Extract the Files:** Use WinRAR, 7-Zip, or any similar tool to extract your `.charx` file (or rename it to `.zip` and extract).
-2.  **Locate the Images:** Go to the folder `assets/other/image`. You will see images named `1.png`, `2.png`, etc.
-3.  **Run the Extractor:** Open the `index.html` file in your browser.
-4.  **Upload the Card:** Upload your original `.charx` file. The tool will show you a table mapping the numbers to the real names (e.g., `1.png` → `blush_aroused.png`).
+1.  **Access the Tool:** Open the official web interface here: [https://ganbuscovick.github.io/AssetsExtractor/](https://ganbuscovick.github.io/AssetsExtractor/)
+2.  **Extract the Files:** Use WinRAR, 7-Zip, or any similar tool to extract your `.charx` file (or rename it to `.zip` and extract).
+3.  **Locate the Images:** Go to the folder `assets/other/image`. You will see images named `1.png`, `2.png`, etc.
+4.  **Upload the Card:** Upload your original `.charx` file to the site. The tool will show you a table mapping the numbers to the real names (e.g., `1.png` → `blush_aroused.png`).
 5.  **Rename & Download:** Upload your numbered images, and the tool will generate a new ZIP file with all files correctly named!
 
 ---
