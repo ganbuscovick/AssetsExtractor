@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RisuRealm Assets Extractor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* --- TEMAS --- */
+        :root { --p: #ff4757; --bg: #f4f4f9; --c: #2f3542; --card: #ffffff; --border: #eeeeee; }
+        [data-theme="dark"] { --p: #ff6b81; --bg: #1e1e2e; --c: #f8f8f2; --card: #282a36; --border: #44475a; }
+        [data-theme="pastel"] { --p: #ffadd2; --bg: #fff0f6; --c: #704450; --card: #ffffff; --border: #ffdeeb; }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--c); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; transition: 0.3s; }
+        .container { background: var(--card); padding: 40px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 700px; text-align: center; position: relative; border: 1px solid var(--border); }
+        
+        /* Modals & Popups */
+        #langModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 999; backdrop-filter: blur(5px); }
+        .modal-content { background: var(--card); padding: 30px; border-radius: 20px; text-align: center; }
+
+        /* Header Controls */
+        .controls { position: absolute; top: 15px; right: 20px; display: flex; gap: 10px; }
+        .ctrl-btn { background: var(--bg); border: 1px solid var(--border); color: var(--c); padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+
+        /* UI Elements */
+        .step { display: none; animation: fadeIn 0.4s; }
+        .active { display: block; }
+        .btn { background: var(--p); color: white; padding: 14px 28px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; margin: 10px 5px; transition: 0.2s; }
+        .btn:hover { transform: scale(1.05); opacity: 0.9; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        input[type="file"] { margin: 20px 0; border: 2px dashed var(--border); padding: 30px; width: 80%; border-radius: 15px; background: var(--bg); color: var(--c); }
+        
+        .preview-header { display: flex; align-items: center; gap: 20px; text-align: left; background: var(--bg); padding: 20px; border-radius: 15px; margin: 20px 0; border: 1px solid var(--border); }
+        .char-icon { width: 80px; height: 80px; object-fit: cover; border-radius: 12px; background: #eee; }
+        
+        .scroll-area { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; }
+        
+        .footer-credit { position: absolute; bottom: -35px; right: 10px; font-size: 11px; opacity: 0.6; font-style: italic; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div id="langModal">
+    <div class="modal-content">
+        <h2 id="modalTitle">Select Language</h2>
+        <div class="lang-grid">
+            <button class="btn btn-sec" onclick="setLanguage('en')">English</button>
+            <button class="btn btn-sec" onclick="setLanguage('pt')">Português</button>
+            <button class="btn btn-sec" onclick="setLanguage('es')">Español</button>
+            <button class="btn btn-sec" onclick="setLanguage('zh')">中文 (Chinese)</button>
+            <button class="btn btn-sec" onclick="setLanguage('ko')">한국어 (Korean)</button>
+            <button class="btn btn-sec" onclick="setLanguage('ru')">Русский (Russian)</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="controls">
+        <select class="ctrl-btn" onchange="setTheme(this.value)" id="themeSelect">
+            <option value="light">☀️ Light</option>
+            <option value="dark">🌙 Dark</option>
+            <option value="pastel">🌸 Pastel</option>
+        </select>
+        <button class="ctrl-btn" onclick="showLangModal()">🌐 Language</button>
+    </div>
+
+    <div id="step1" class="step active">
+        <h2 id="t-welcome">Welcome to RisuRealm</h2>
+        <p id="t-load-desc">Upload your .charx or .zip character file</p>
+        <input type="file" id="inputCharx" accept=".charx,.zip">
+        
+        <div id="previewArea" style="display:none">
+            <div class="preview-header">
+                <img id="charIcon" class="char-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+                <div>
+                    <strong id="charName">Character Name</strong><br>
+                    <span id="charCount" style="opacity:0.7"></span>
+                </div>
+            </div>
+            <div class="scroll-area">
+                <table>
+                    <tbody id="listaMapeada"></tbody>
+                </table>
+            </div>
+            <button class="btn" id="t-btn-next" onclick="goStep(2)">Next ➔</button>
+        </div>
+    </div>
+
+    <div id="step2" class="step">
+        <h3 id="t-step2-title">Match New Images</h3>
+        <p id="t-step2-desc">Upload the numbered images (1.png, 2.png...)</p>
+        <input type="file" id="inputImages" multiple accept="image/*">
+        <br>
+        <button class="btn" id="btnFinalize" disabled onclick="processZip()">Generate ZIP</button>
+        <br>
+        <button class="btn btn-sec" style="background:none; color:var(--c); font-size:12px" onclick="goStep(1)">⬅ Back</button>
+    </div>
+
+    <div id="step3" class="step">
+        <h1 style="color:#2ed573">✓</h1>
+        <h3 id="t-success">Ready for Download!</h3>
+        <button class="btn" id="downloadBtn">Download Assets</button>
+        <br><br>
+        <a href="javascript:location.reload()" style="color:var(--c); text-decoration:none; font-size:12px; opacity:0.6" id="t-restart">Restart</a>
+    </div>
+
+    <div class="footer-credit">made by Rety with help from AI</div>
+</div>
+
+<script>
+    const langs = {
+        en: { welcome: "RisuRealm Assets Extractor", loadDesc: "Select your .charx or .zip file", next: "Next Step", s2Title: "New Images", s2Desc: "Select the same number of images", gen: "Generate Zip", success: "Process Complete!", restart: "Restart Process", modal: "Select Language" },
+        pt: { welcome: "RisuRealm Assets Extractor", loadDesc: "Selecione seu arquivo .charx ou .zip", next: "Próximo Passo", s2Title: "Novas Imagens", s2Desc: "Selecione a mesma quantidade de imagens", gen: "Gerar Arquivo ZIP", success: "Concluído com Sucesso!", restart: "Recomeçar", modal: "Selecione o Idioma" },
+        es: { welcome: "RisuRealm Assets Extractor", loadDesc: "Seleccione su archivo .charx o .zip", next: "Siguiente", s2Title: "Nuevas Imágenes", s2Desc: "Seleccione la misma cantidad de imágenes", gen: "Generar ZIP", success: "¡Proceso Completado!", restart: "Reiniciar", modal: "Seleccionar Idioma" },
+        zh: { welcome: "RisuRealm 资源提取器", loadDesc: "选择您的 .charx 或 .zip 文件", next: "下一步", s2Title: "新图像", s2Desc: "选择相同数量的图像", gen: "生成 ZIP", success: "处理完成！", restart: "重新开始", modal: "选择语言" },
+        ko: { welcome: "RisuRealm 에셋 추출기", loadDesc: ".charx 또는 .zip 파일을 선택하세요", next: "다음 단계", s2Title: "새 이미지", s2Desc: "동일한 수의 이미지를 선택하세요", gen: "ZIP 생성", success: "처리 완료!", restart: "다시 시작", modal: "언어 선택" },
+        ru: { welcome: "RisuRealm Assets Extractor", loadDesc: "Выберите файл .charx или .zip", next: "Далее", s2Title: "Новые изображения", s2Desc: "Выберите то же количество изображений", gen: "Создать ZIP", success: "Готово!", restart: "Начать заново", modal: "Выберите язык" }
+    };
+
+    let currentLang = localStorage.getItem('risu_lang') || null;
+    let mapping = [];
+    let finalBlob = null;
+
+    // --- SETUP INITIAL ---
+    window.onload = () => {
+        const savedTheme = localStorage.getItem('risu_theme') || 'light';
+        setTheme(savedTheme);
+        document.getElementById('themeSelect').value = savedTheme;
+
+        if (!currentLang) {
+            showLangModal();
+        } else {
+            setLanguage(currentLang);
+        }
+    };
+
+    function showLangModal() { document.getElementById('langModal').style.display = 'flex'; }
+    
+    function setLanguage(l) {
+        currentLang = l;
+        localStorage.setItem('risu_lang', l);
+        document.getElementById('langModal').style.display = 'none';
+        
+        const dict = langs[l];
+        document.getElementById('t-welcome').innerText = dict.welcome;
+        document.getElementById('t-load-desc').innerText = dict.loadDesc;
+        document.getElementById('t-btn-next').innerText = dict.next;
+        document.getElementById('t-step2-title').innerText = dict.s2Title;
+        document.getElementById('t-step2-desc').innerText = dict.s2Desc;
+        document.getElementById('btnFinalize').innerText = dict.gen;
+        document.getElementById('t-success').innerText = dict.success;
+        document.getElementById('t-restart').innerText = dict.restart;
+        document.getElementById('modalTitle').innerText = dict.modal;
+    }
+
+    function setTheme(t) {
+        document.body.setAttribute('data-theme', t);
+        localStorage.setItem('risu_theme', t);
+    }
+
+    function goStep(n) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + n).classList.add('active');
+    }
+
+    // --- LOGIC ---
+    document.getElementById('inputCharx').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const zip = new JSZip();
+        try {
+            const data = await zip.loadAsync(file);
+            const cardJson = JSON.parse(await data.file("card.json").async("string"));
+            
+            // Icon
+            data.folder("assets/icon/image").forEach((p, f) => {
+                f.async("blob").then(b => document.getElementById('charIcon').src = URL.createObjectURL(b));
+            });
+
+            mapping = cardJson.data.assets
+                .filter(a => a.type === "x-risu-asset")
+                .map(a => ({ original: a.uri.split('/').pop(), name: a.name }))
+                .sort((a,b) => (parseInt(a.original.replace(/\D/g,''))||0) - (parseInt(b.original.replace(/\D/g,''))||0));
+
+            const list = document.getElementById('listaMapeada');
+            list.innerHTML = mapping.map(m => `<tr><td><b>${m.original}</b></td><td>${m.name}</td></tr>`).join('');
+            
+            document.getElementById('charName').innerText = cardJson.data.name;
+            document.getElementById('charCount').innerText = mapping.length + " assets";
+            document.getElementById('previewArea').style.display = 'block';
+        } catch(err) { alert("Error reading file!"); }
+    });
+
+    document.getElementById('inputImages').addEventListener('change', (e) => {
+        const btn = document.getElementById('btnFinalize');
+        btn.disabled = e.target.files.length !== mapping.length;
+    });
+
+    async function processZip() {
+        const files = Array.from(document.getElementById('inputImages').files)
+            .sort((a,b) => (parseInt(a.name.replace(/\D/g,''))||0) - (parseInt(b.name.replace(/\D/g,''))||0));
+        
+        const zip = new JSZip();
+        files.forEach((f, i) => zip.file(mapping[i].name, f));
+        finalBlob = await zip.generateAsync({type:"blob"});
+        goStep(3);
+    }
+
+    document.getElementById('downloadBtn').onclick = () => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(finalBlob);
+        a.download = "RisuRealm_Assets.zip";
+        a.click();
+    };
+</script>
+</body>
+</html>
